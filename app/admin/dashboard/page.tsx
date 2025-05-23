@@ -95,7 +95,7 @@ export default function AdminDashboard() {
     setFilteredApplications(filtered)
   }
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const handleStatusChange = async (id: string, newStatus: ApplicationStatus) => {
     try {
       const { error } = await supabase
         .from('core_applications')
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Select
                         value={app.status}
-                        onValueChange={(value) => handleStatusChange(app.id, value)}
+                        onValueChange={(value) => handleStatusChange(app.id, value as ApplicationStatus)}
                       >
                         <SelectTrigger className="w-[120px] bg-gray-800 border-gray-700 text-white">
                           <SelectValue placeholder="Change status" />
