@@ -27,6 +27,8 @@ export default function ApplyPage() {
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [emailWarning, setEmailWarning] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string>("")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -93,6 +95,8 @@ export default function ApplyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError("")
+    setIsSubmitting(true)
 
     if (validateForm()) {
       try {
@@ -113,15 +117,19 @@ export default function ApplyPage() {
 
         if (error) {
           console.error('Error submitting application:', error)
-          // You might want to show an error message to the user here
+          setSubmitError("Failed to submit application. Please try again later.")
           return
         }
 
         setSubmitted(true)
       } catch (error) {
         console.error('Error submitting application:', error)
-        // You might want to show an error message to the user here
+        setSubmitError("An unexpected error occurred. Please try again later.")
+      } finally {
+        setIsSubmitting(false)
       }
+    } else {
+      setIsSubmitting(false)
     }
   }
 
@@ -325,10 +333,14 @@ export default function ApplyPage() {
                 <motion.div variants={itemVariants} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-lg transition-all duration-300 hover:shadow-[0_0_15px_rgba(138,43,226,0.8)]"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-lg transition-all duration-300 hover:shadow-[0_0_15px_rgba(138,43,226,0.8)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Submit Application
+                    {isSubmitting ? "Submitting..." : "Submit Application"}
                   </Button>
+                  {submitError && (
+                    <p className="text-red-500 text-sm mt-2 text-center">{submitError}</p>
+                  )}
                 </motion.div>
               </motion.div>
             </form>
