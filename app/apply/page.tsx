@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { supabase } from "@/lib/supabase"
+import { CoreApplication } from "@/lib/types"
 
 export default function ApplyPage() {
   const [formState, setFormState] = useState({
@@ -24,10 +26,12 @@ export default function ApplyPage() {
   })
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [emailWarning, setEmailWarning] = useState<string>("")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormState((prev) => ({ ...prev, [name]: value }))
+    
     // Clear error when user types
     if (errors[name]) {
       setErrors((prev) => {
@@ -35,6 +39,17 @@ export default function ApplyPage() {
         delete newErrors[name]
         return newErrors
       })
+    }
+
+    // Check email domain when email is changed
+    if (name === 'email') {
+      if (value && !value.endsWith('@mpgi.edu.in') && !value.endsWith('@gmail.com')) {
+        setEmailWarning("Please use your MPGI email (@mpgi.edu.in) or Gmail address")
+      } else if (value && value.endsWith('@gmail.com')) {
+        setEmailWarning("Note: MPGI email (@mpgi.edu.in) is preferred")
+      } else {
+        setEmailWarning("")
+      }
     }
   }
 
@@ -58,8 +73,8 @@ export default function ApplyPage() {
       newErrors.email = "Email is required"
     } else if (!/\S+@\S+\.\S+/.test(formState.email)) {
       newErrors.email = "Email is invalid"
-    } else if (!formState.email.endsWith("@mpgi.edu.in")) {
-      newErrors.email = "Please use your college email (@mpgi.edu.in)"
+    } else if (!formState.email.endsWith('@mpgi.edu.in') && !formState.email.endsWith('@gmail.com')) {
+      newErrors.email = "Please use your MPGI email (@mpgi.edu.in) or Gmail address"
     }
     if (!formState.rollNumber.trim()) newErrors.rollNumber = "Roll number is required"
     if (!formState.skills.trim()) newErrors.skills = "Skills are required"
@@ -76,14 +91,37 @@ export default function ApplyPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (validateForm()) {
-      // Simulate form submission
-      setTimeout(() => {
+      try {
+        const { error } = await supabase
+          .from('core_applications')
+          .insert([
+            {
+              name: formState.name,
+              email: formState.email,
+              roll_number: formState.rollNumber,
+              skills: formState.skills,
+              github_link: formState.githubLink || null,
+              reason: formState.reason,
+              role: formState.role,
+              status: 'pending'
+            }
+          ])
+
+        if (error) {
+          console.error('Error submitting application:', error)
+          // You might want to show an error message to the user here
+          return
+        }
+
         setSubmitted(true)
-      }, 1000)
+      } catch (error) {
+        console.error('Error submitting application:', error)
+        // You might want to show an error message to the user here
+      }
     }
   }
 
@@ -176,7 +214,7 @@ export default function ApplyPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-300">
-                    College Email
+                    Email Address
                   </Label>
                   <Input
                     id="email"
@@ -187,9 +225,10 @@ export default function ApplyPage() {
                     className={`bg-gray-800 border ${
                       errors.email ? "border-red-500" : "border-gray-700"
                     } focus:border-blue-500 focus:ring-blue-500 text-white`}
-                    placeholder="your.name@mpgi.edu.in"
+                    placeholder="your.name@mpgi.edu.in or your.name@gmail.com"
                   />
                   {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                  {emailWarning && <p className="text-yellow-500 text-sm mt-1">{emailWarning}</p>}
                 </div>
 
                 <div className="space-y-2">
