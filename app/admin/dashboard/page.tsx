@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +10,7 @@ import { Download, Search } from "lucide-react"
 import { CoreApplication } from "@/lib/types"
 
 export default function AdminDashboard() {
+  const router = useRouter()
   const [applications, setApplications] = useState<CoreApplication[]>([])
   const [filteredApplications, setFilteredApplications] = useState<CoreApplication[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -17,8 +19,37 @@ export default function AdminDashboard() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    fetchApplications()
+    checkAuth()
   }, [])
+
+  const checkAuth = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (error || !session) {
+        router.push('/admin/login')
+        return
+      }
+
+      // Check if user has admin role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profileError || profile?.role !== 'admin') {
+        router.push('/')
+        return
+      }
+
+      // If authenticated and authorized, fetch applications
+      fetchApplications()
+    } catch (error) {
+      console.error('Auth check error:', error)
+      router.push('/admin/login')
+    }
+  }
 
   useEffect(() => {
     filterApplications()
