@@ -5,9 +5,9 @@ services:
     buildCommand: pnpm install && pnpm build
     startCommand: pnpm start
     envVars:
-      - key: SUPABASE_URL
+      - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false
-      - key: SUPABASE_ANON_KEY
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
         sync: false
       - key: NODE_ENV
         value: production 
