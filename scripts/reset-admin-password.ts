@@ -24,5 +24,5 @@ async function resetAdminPassword(email: string) {
 }
 
 // Replace with your admin email
-const adminEmail = 'YOUR_ADMIN_EMAIL'
+const adminEmail = 'aliaman11072003@mpgi.edu.in'
 resetAdminPassword(adminEmail) 
