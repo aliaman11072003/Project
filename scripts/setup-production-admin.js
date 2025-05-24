@@ -28,44 +28,42 @@ async function setupProductionAdmin() {
     console.log('Found admin user:', adminUser.id)
 
     // Create or update the profiles table
-    const { error: tableError } = await supabase.rpc('create_profiles_table', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS profiles (
-          id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-          email TEXT UNIQUE NOT NULL,
-          role TEXT NOT NULL DEFAULT 'user',
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-          CONSTRAINT valid_role CHECK (role IN ('user', 'admin'))
+    const { error: tableError } = await supabase.query(`
+      CREATE TABLE IF NOT EXISTS profiles (
+        id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+        CONSTRAINT valid_role CHECK (role IN ('user', 'admin'))
+      );
+
+      -- Enable RLS
+      ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+      -- Create policies
+      CREATE POLICY "Users can view own profile" ON profiles
+        FOR SELECT USING (auth.uid() = id);
+
+      CREATE POLICY "Users can update own profile" ON profiles
+        FOR UPDATE USING (auth.uid() = id);
+
+      CREATE POLICY "Admins can view all profiles" ON profiles
+        FOR SELECT USING (
+          EXISTS (
+            SELECT 1 FROM profiles
+            WHERE id = auth.uid() AND role = 'admin'
+          )
         );
 
-        -- Enable RLS
-        ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
-        -- Create policies
-        CREATE POLICY "Users can view own profile" ON profiles
-          FOR SELECT USING (auth.uid() = id);
-
-        CREATE POLICY "Users can update own profile" ON profiles
-          FOR UPDATE USING (auth.uid() = id);
-
-        CREATE POLICY "Admins can view all profiles" ON profiles
-          FOR SELECT USING (
-            EXISTS (
-              SELECT 1 FROM profiles
-              WHERE id = auth.uid() AND role = 'admin'
-            )
-          );
-
-        CREATE POLICY "Admins can update all profiles" ON profiles
-          FOR UPDATE USING (
-            EXISTS (
-              SELECT 1 FROM profiles
-              WHERE id = auth.uid() AND role = 'admin'
-            )
-          );
-      `
-    })
+      CREATE POLICY "Admins can update all profiles" ON profiles
+        FOR UPDATE USING (
+          EXISTS (
+            SELECT 1 FROM profiles
+            WHERE id = auth.uid() AND role = 'admin'
+          )
+        );
+    `)
 
     if (tableError) {
       console.error('Error creating/updating profiles table:', tableError)
