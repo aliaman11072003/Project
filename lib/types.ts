@@ -7,11 +7,11 @@ export interface CoreApplication {
   email: string
   roll_number: string
   skills: string
-  github_link: string | null
+  github_link?: string
   reason: string
   role: string
   status: ApplicationStatus
-  notes: string | null
-  reviewed_by: string | null
-  reviewed_at: string | null
+  notes?: string
+  reviewed_by?: string
+  reviewed_at?: string
 } 

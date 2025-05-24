@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,7 +10,7 @@ const supabase = createClient(
 
 async function setupDatabase() {
   try {
-    // Create profiles table if it doesn't exist
+    // Create profiles table
     const { error: profilesError } = await supabase.rpc('create_profiles_table', {
       sql: `
         CREATE TABLE IF NOT EXISTS profiles (
@@ -15,10 +18,11 @@ async function setupDatabase() {
           email TEXT UNIQUE NOT NULL,
           role TEXT NOT NULL DEFAULT 'user',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+          CONSTRAINT valid_role CHECK (role IN ('user', 'admin'))
         );
 
-        -- Create RLS policies
+        -- Create RLS policies for profiles
         ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
         -- Allow users to read their own profile
@@ -54,7 +58,7 @@ async function setupDatabase() {
       return
     }
 
-    // Create core_applications table if it doesn't exist
+    // Create core_applications table
     const { error: applicationsError } = await supabase.rpc('create_applications_table', {
       sql: `
         CREATE TABLE IF NOT EXISTS core_applications (
@@ -70,15 +74,27 @@ async function setupDatabase() {
           status TEXT NOT NULL DEFAULT 'pending',
           notes TEXT,
           reviewed_by TEXT,
-          reviewed_at TIMESTAMP WITH TIME ZONE
+          reviewed_at TIMESTAMP WITH TIME ZONE,
+          
+          -- Add constraints
+          CONSTRAINT valid_email CHECK (
+            email ~* '^[A-Za-z0-9._%+-]+@(mpgi\\.edu\\.in|gmail\\.com)$'
+          ),
+          CONSTRAINT valid_status CHECK (
+            status IN ('pending', 'approved', 'rejected')
+          )
         );
 
-        -- Create RLS policies
+        -- Create RLS policies for core_applications
         ALTER TABLE core_applications ENABLE ROW LEVEL SECURITY;
 
         -- Allow anyone to insert applications
         CREATE POLICY "Anyone can insert applications" ON core_applications
           FOR INSERT WITH CHECK (true);
+
+        -- Allow users to view their own applications
+        CREATE POLICY "Users can view own applications" ON core_applications
+          FOR SELECT USING (email = auth.jwt()->>'email');
 
         -- Allow admins to view all applications
         CREATE POLICY "Admins can view all applications" ON core_applications
