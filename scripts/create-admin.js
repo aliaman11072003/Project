@@ -8,11 +8,10 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
-// Replace with your admin email and password
+// Admin credentials
 const adminEmail = 'aliaman11072003@mpgi.edu.in'
-const adminPassword = 'aman2003' // Replace with a secure password
+const adminPassword = 'aman2003'
 
-// First create the user in auth
 async function createAdminUser(email, password) {
   try {
     // Create the user in Supabase Auth
@@ -57,3 +56,4 @@ async function createAdminUser(email, password) {
 }
 
 createAdminUser(adminEmail, adminPassword) 
+
